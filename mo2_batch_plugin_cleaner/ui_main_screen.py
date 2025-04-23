@@ -51,7 +51,7 @@ class Ui_main_screen(object):
 
     def retranslateUi(self, main_screen):
         _translate = QtCore.QCoreApplication.translate
-        main_screen.setWindowTitle(_translate("main_screen", "Dialog"))
+        main_screen.setWindowTitle(_translate("main_screen", "Batch Plugin Cleaner"))
         self.filterEdit.setPlaceholderText(_translate("main_screen", "Filter..."))
         self.okButton.setText(_translate("main_screen", "OK"))
         self.cancelButton.setText(_translate("main_screen", "Cancel"))
