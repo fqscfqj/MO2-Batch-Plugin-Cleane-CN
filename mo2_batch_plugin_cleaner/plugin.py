@@ -1,7 +1,7 @@
 # Original plugin created for Skyrim by bluebuiy
 #     https://www.nexusmods.com/skyrimspecialedition/mods/59598
 # Modified for Fallout 4 by wxMichael
-#     https://www.nexusmods.com/fallout4/mods/84962
+#     https://www.nexusmods.com/fallout4/mods/85067
 #
 # This version created by GoriRed
 # Version: 3.0

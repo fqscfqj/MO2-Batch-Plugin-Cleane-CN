@@ -9,7 +9,7 @@ This is an updated version of the original Batch Plugin Cleaner for Mod Organize
 https://www.nexusmods.com/skyrimspecialedition/mods/59598
 
 It also includes the modifications for Fallout 4 by wxMichael  
-https://www.nexusmods.com/fallout4/mods/84962
+https://www.nexusmods.com/fallout4/mods/85067
 
 # Installation
 - Removed either of the above previous versions (BatchPluginCleaner.py) from your MO2 plugins folder.  
