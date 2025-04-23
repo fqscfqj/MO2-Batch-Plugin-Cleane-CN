@@ -6,7 +6,7 @@
 # This version created by GoriRed
 # Version: 3.0
 # License: CC-BY-NC
-# https://github.com/tkoopman/
+# https://github.com/tkoopman/MO2-Batch-Plugin-Cleaner
 
 import enum
 import logging
