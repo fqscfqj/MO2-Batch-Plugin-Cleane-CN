@@ -1,0 +1,80 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>1ecad1bc-43bc-4246-b6ea-0fffd30d2499</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>
+    </StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <Name>MO2-Batch-Plugin-Cleaner</Name>
+    <RootNamespace>MO2-Batch-Plugin-Cleaner</RootNamespace>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+    <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="mo2_batch_plugin_cleaner\cleaning_data.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\icons.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\composer.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\constructor.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\cyaml.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\dumper.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\emitter.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\error.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\events.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\loader.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\nodes.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\parser.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\reader.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\representer.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\resolver.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\scanner.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\serializer.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\tokens.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\lib\yaml\__init__.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\plugin.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\ui_main_screen.py" />
+    <Compile Include="mo2_batch_plugin_cleaner\__init__.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="mo2_batch_plugin_cleaner\" />
+    <Folder Include="mo2_batch_plugin_cleaner\icons\" />
+    <Folder Include="mo2_batch_plugin_cleaner\lib\" />
+    <Folder Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\" />
+    <Folder Include="mo2_batch_plugin_cleaner\lib\yaml\" />
+    <Folder Include="ui\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="mo2_batch_plugin_cleaner\icons\confused-face-svgrepo-com.svg" />
+    <Content Include="mo2_batch_plugin_cleaner\icons\disappointed-face-svgrepo-com.svg" />
+    <Content Include="mo2_batch_plugin_cleaner\icons\emotion-happy-svgrepo-com.svg" />
+    <Content Include="mo2_batch_plugin_cleaner\icons\emotion-unhappy-svgrepo-com.svg" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\INSTALLER" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\LICENSE" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\METADATA" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\RECORD" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\REQUESTED" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\top_level.txt" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\WHEEL" />
+    <Content Include="mo2_batch_plugin_cleaner\lib\yaml\_yaml.cp313-win_amd64.pyd" />
+    <Content Include="ui\main_screen.ui" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+  <!-- Uncomment the CoreCompile target to enable the Build command in
+       Visual Studio and specify your pre- and post-build commands in
+       the BeforeBuild and AfterBuild targets below. -->
+  <!--<Target Name="CoreCompile" />-->
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+</Project>
