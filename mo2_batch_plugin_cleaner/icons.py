@@ -1,5 +1,5 @@
 # Created by GoriRed
-# Version: 1.0
+# Version: 1.1
 # License: CC-BY-NC
 # https://github.com/tkoopman/MO2-Batch-Plugin-Cleaner
 #
@@ -18,3 +18,4 @@ CLEAN_STATE_UNKNOWN = icon("confused-face-svgrepo-com.svg")
 CLEAN_STATE_CLEAN = icon("emotion-happy-svgrepo-com.svg")
 CLEAN_STATE_DIRTY = icon("emotion-unhappy-svgrepo-com.svg")
 CLEAN_STATE_MANUAL = icon("disappointed-face-svgrepo-com.svg")
+DO_NOT_CLEAN = icon("no-entry-svgrepo-com.svg")
