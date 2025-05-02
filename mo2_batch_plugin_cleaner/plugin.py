@@ -4,7 +4,7 @@
 #     https://www.nexusmods.com/fallout4/mods/85067
 #
 # This version created by GoriRed
-# Version: 3.0
+# Version: 1.1
 # License: CC-BY-NC
 # https://github.com/tkoopman/MO2-Batch-Plugin-Cleaner
 
@@ -160,6 +160,7 @@ class plugin(typing.TypedDict):
     crc: crc32 | None
     cleaning_data: cleaning_data.cleaning_data | None
     processed: str | bool
+    ignore: bool
 
 
 class Plugins:
@@ -169,6 +170,10 @@ class Plugins:
         crc_cleaning_data: crc_cleaning_data,
         plugins: list["plugin"],
         index: dict[str, int] | None,
+        first_dynamic: int,
+        cleanPrimary: bool,
+        cleanCC: bool,
+        cleanElse: bool,
     ) -> None:
         self.organizer = organizer
         self.crc_cleaning_data = crc_cleaning_data
@@ -177,6 +182,11 @@ class Plugins:
             self.__plugins_index = index
         else:
             self.reindex()
+
+        self.first_dynamic = first_dynamic
+        self.__cleanPrimary = cleanPrimary
+        self.__cleanCC = cleanCC
+        self.__cleanElse = cleanElse
 
     def reindex(self) -> None:
         self.__plugins_index = {
@@ -230,7 +240,14 @@ class Plugins:
         firstDynamic = str(
             organizer.pluginSetting(CleanerPlugin.NAME(), "first_dynamic")
         )
-        firstDynamicFound = False
+        firstDynamicFound = -1
+
+        ignored = str(organizer.pluginSetting(CleanerPlugin.NAME(), "do_not_clean"))
+
+        if ignored:
+            ignored = [name.casefold().strip() for name in ignored.split(",")]
+        else:
+            ignored = list[str]()
 
         for plugin_name in plugins:
             if plugin_list.state(plugin_name) != mobase.PluginState.ACTIVE:
@@ -292,31 +309,27 @@ class Plugins:
                 )
             )
 
-            if not firstDynamicFound and state in [
-                plugin_clean_state.DIRTY,
-                plugin_clean_state.UNKNOWN,
-            ]:
-                if plugin_name == firstDynamic:
-                    firstDynamicFound = True
-                    selected = False
-                else:
-                    match pluginType:
-                        case plugin_type.PRIMARY:
-                            selected = cleanPrimary
-                        case plugin_type.DLC:
-                            selected = cleanPrimary
-                        case plugin_type.CC:
-                            selected = cleanCC
-                        case _:
-                            selected = cleanElse
-            else:
-                selected = False
+            if plugin_name == firstDynamic:
+                firstDynamicFound = plugin_list.priority(plugin_name)
+
+            ignore = plugin_name_cf in ignored
+            priority = plugin_list.priority(plugin_name)
+            selected = Plugins.__selected_default(
+                ignore,
+                state,
+                priority,
+                pluginType,
+                firstDynamicFound,
+                cleanPrimary,
+                cleanCC,
+                cleanElse,
+            )
 
             data = plugin(
                 {
                     "name": plugin_name,
                     "selected": selected,
-                    "priority": plugin_list.priority(plugin_name),
+                    "priority": priority,
                     "type": pluginType,
                     "origin": origin,
                     "state": state,
@@ -324,12 +337,68 @@ class Plugins:
                     "crc": crc,
                     "cleaning_data": cd,
                     "processed": False,
+                    "ignore": ignore,
                 }
             )
+
             plugins_index[plugin_name_cf] = len(plugins_data)
             plugins_data.append(data)
 
-        return Plugins(organizer, crc_cleaning_data, plugins_data, plugins_index)
+        return Plugins(
+            organizer,
+            crc_cleaning_data,
+            plugins_data,
+            plugins_index,
+            firstDynamicFound,
+            cleanPrimary,
+            cleanCC,
+            cleanElse,
+        )
+
+    def get_ignored(self) -> list[str]:
+        return sorted([plugin["name"] for plugin in self.__plugins if plugin["ignore"]])
+
+    @staticmethod
+    def __selected_default(
+        ignore: bool,
+        state: plugin_clean_state,
+        priority: int,
+        pluginType: plugin_type,
+        first_dynamic: int,
+        cleanPrimary: bool,
+        cleanCC: bool,
+        cleanElse: bool,
+    ) -> bool:
+        if ignore:
+            return False
+
+        if state not in [plugin_clean_state.DIRTY, plugin_clean_state.UNKNOWN]:
+            return False
+
+        if first_dynamic != -1 and priority >= first_dynamic:
+            return False
+
+        match pluginType:
+            case plugin_type.PRIMARY:
+                return cleanPrimary
+            case plugin_type.DLC:
+                return cleanPrimary
+            case plugin_type.CC:
+                return cleanCC
+            case _:
+                return cleanElse
+
+    def selected_default(self, plugin: plugin) -> bool:
+        return Plugins.__selected_default(
+            plugin["ignore"],
+            plugin["state"],
+            plugin["priority"],
+            plugin["type"],
+            self.first_dynamic,
+            self.__cleanPrimary,
+            self.__cleanCC,
+            self.__cleanElse,
+        )
 
     @staticmethod
     def Selected(plugins: "Plugins") -> "Plugins":
@@ -339,7 +408,14 @@ class Plugins:
 
         selected_plugins.sort(key=lambda x: x["priority"])
         return Plugins(
-            plugins.organizer, plugins.crc_cleaning_data, selected_plugins, None
+            plugins.organizer,
+            plugins.crc_cleaning_data,
+            selected_plugins,
+            None,
+            plugins.first_dynamic,
+            plugins.__cleanPrimary,
+            plugins.__cleanCC,
+            plugins.__cleanElse,
         )
 
     def __getitem__(self, value: str | int) -> plugin | None:
@@ -373,6 +449,11 @@ class plugin_select_model(QAbstractTableModel):
 
     def flags(self, index: QModelIndex) -> Qt.ItemFlag:
         if index.isValid():
+            p = self.__plugins[index.row()]
+            if p and p["ignore"]:
+                return (
+                    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
+                )
             return (
                 Qt.ItemFlag.ItemIsEnabled
                 | Qt.ItemFlag.ItemIsUserCheckable
@@ -455,6 +536,9 @@ class plugin_select_model(QAbstractTableModel):
 
             case 1:
                 if role == Qt.ItemDataRole.DecorationRole:
+                    if plugin["ignore"]:
+                        return icons.DO_NOT_CLEAN
+
                     match plugin["state"]:
                         case plugin_clean_state.UNKNOWN:
                             return icons.CLEAN_STATE_UNKNOWN
@@ -563,12 +647,57 @@ class PluginSelectWindow(QDialog):
         if not plugin or not isinstance(plugin, str):
             return
 
-        action = QAction(f"Set first dynamic patch to {plugin}", self)
+        plugin = self.__plugins[plugin]
+        if not plugin:
+            return
+
+        action = QAction("Allow cleaning" if plugin["ignore"] else "Do not clean", self)
+        action.setToolTip("Will not allow cleaning of this plugin")
+        action.triggered.connect(self.context_menu_toggle_ignore)  # type: ignore
+        context_menu.addAction(action)  # type: ignore
+
+        action = QAction("Set first dynamic patch", self)
         action.setToolTip("Will never auto select this mod or any with higher priority")
         action.triggered.connect(self.context_menu_set_dynamic)  # type: ignore
         context_menu.addAction(action)  # type: ignore
 
         context_menu.exec(self.__main_screen.pluginsView.mapToGlobal(position))  # type: ignore
+
+    def context_menu_toggle_ignore(self):
+        index = self.__main_screen.pluginsView.currentIndex()
+        if not index.isValid():
+            return
+
+        model = self.__main_screen.pluginsView.model()
+        if not model:
+            return
+
+        if index.column() != 0:
+            index = index.sibling(index.row(), 0)
+
+        plugin = self.__plugins[index.data()]
+        if plugin:
+            plugin["ignore"] = not plugin["ignore"]
+            self.__plugins.organizer.setPluginSetting(
+                CleanerPlugin.NAME(),
+                "do_not_clean",
+                ",".join(self.__plugins.get_ignored()),
+            )
+
+            if plugin["ignore"]:
+                plugin["selected"] = False
+            else:
+                plugin["selected"] = self.__plugins.selected_default(plugin)
+
+            model.dataChanged.emit(
+                index,
+                index.siblingAtColumn(model.columnCount() - 1),
+                [
+                    Qt.ItemDataRole.DisplayRole,
+                    Qt.ItemDataRole.CheckStateRole,
+                    Qt.ItemDataRole.DecorationRole,
+                ],
+            )
 
     def context_menu_set_dynamic(self):
         index = self.__main_screen.pluginsView.currentIndex()
@@ -963,7 +1092,7 @@ class CleanerPlugin(mobase.IPluginTool):
         return f"Clean all plugins with one button. Requires {gameInfo[self.__organizer.managedGame().gameShortName()]["xEditName"]}"
 
     def version(self) -> mobase.VersionInfo:
-        return mobase.VersionInfo(2, 0, 0, mobase.ReleaseType.FINAL)
+        return mobase.VersionInfo(1, 1, 0, mobase.ReleaseType.FINAL)
 
     def isActive(self) -> bool:
         return self.__organizer.pluginSetting(self.name(), "enabled")  # type: ignore
@@ -1011,6 +1140,11 @@ class CleanerPlugin(mobase.IPluginTool):
             mobase.PluginSetting(
                 "first_dynamic",
                 "Will not auto select this plugin or any with higher priority",
+                "",
+            ),
+            mobase.PluginSetting(
+                "do_not_clean",
+                "Will not allow cleaning of listed plugins even if known dirty. Comma separated list.",
                 "",
             ),
         ]

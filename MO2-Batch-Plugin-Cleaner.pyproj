@@ -58,6 +58,7 @@
     <Content Include="mo2_batch_plugin_cleaner\icons\disappointed-face-svgrepo-com.svg" />
     <Content Include="mo2_batch_plugin_cleaner\icons\emotion-happy-svgrepo-com.svg" />
     <Content Include="mo2_batch_plugin_cleaner\icons\emotion-unhappy-svgrepo-com.svg" />
+    <Content Include="mo2_batch_plugin_cleaner\icons\no-entry-svgrepo-com.svg" />
     <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\INSTALLER" />
     <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\LICENSE" />
     <Content Include="mo2_batch_plugin_cleaner\lib\PyYAML-6.0.2.dist-info\METADATA" />
