@@ -1,5 +1,5 @@
 # Created by GoriRed
-# Version: 1.0
+# Version: 1.2
 # License: CC-BY-NC
 # https://github.com/tkoopman/MO2-Batch-Plugin-Cleaner
 
@@ -10,6 +10,7 @@ import logging
 import re
 import os
 import site
+import traceback
 
 site.addsitedir(os.path.join(os.path.dirname(__file__), "lib"))
 
@@ -47,11 +48,16 @@ class crc32:
         if not filename.is_file():
             return crc32(0)
 
-        with open(filename, "rb") as file:
-            crc = 0
-            while chunk := file.read(chunk_size):
-                crc = binascii.crc32(chunk, crc)
-            return crc32(crc & 0xFFFFFFFF)
+        try:
+            with open(filename, "rb") as file:
+                crc = 0
+                while chunk := file.read(chunk_size):
+                    crc = binascii.crc32(chunk, crc)
+                return crc32(crc & 0xFFFFFFFF)
+        except Exception as e:
+            logging.error(f'Error calculating CRC of "{filename}"')
+            logging.error(traceback.format_exception(e))
+            return crc32(0)
 
     @staticmethod
     def crc32_presenter(dumper: Dumper, data: "crc32"):
@@ -173,6 +179,7 @@ class crc_cleaning_data(dict[str, dict[crc32, cleaning_data]]):
             for crc in new_data[name]:
                 self[name][crc] = new_data[name][crc]
 
+
 class CsvData:
     @staticmethod
     def load(filename: str | Path) -> crc_cleaning_data:
@@ -180,7 +187,11 @@ class CsvData:
         if isinstance(filename, str):
             filename = Path(filename)
 
-        if filename.is_file():
+        if not filename.is_file():
+            logging.debug(f'File "{filename}" not found.')
+            return crc_data
+
+        try:
             with open(filename, "r") as csvFile:
                 reader = csv.DictReader(csvFile)
                 for line in reader:
@@ -194,29 +205,42 @@ class CsvData:
                                 crc_data[name] = {}
 
                             crc_data[name][crc32(crc)] = cd
+            logging.debug(f'Read user cleaning data from "{filename}".')
+        except Exception as e:
+            logging.error(f'Error reading "{filename}"')
+            logging.error(traceback.format_exception(e))
 
         return crc_data
 
     @staticmethod
-    def save(data: crc_cleaning_data, filename: str | Path, only_source: source | None = source.USER) -> None:
-        with open(filename, "w", newline="") as csvFile:
-            writer = csv.DictWriter(
-                csvFile, ["crc", "name", "itm", "udr", "nav"], lineterminator="\n"
-            )
-            writer.writeheader()
-            for name in sorted(data.keys()):
-                for crc in sorted(data[name]):
-                    cd = data[name][crc]
-                    if only_source is None or only_source == cd.source:
-                        writer.writerow(
-                            {
-                                "crc": str(crc),
-                                "name": name,
-                                "itm": cd.itm,
-                                "udr": cd.udr,
-                                "nav": cd.nav,
-                            }
-                        )
+    def save(
+        data: crc_cleaning_data,
+        filename: str | Path,
+        only_source: source | None = source.USER,
+    ) -> None:
+        try:
+            with open(filename, "w", newline="") as csvFile:
+                writer = csv.DictWriter(
+                    csvFile, ["crc", "name", "itm", "udr", "nav"], lineterminator="\n"
+                )
+                writer.writeheader()
+                for name in sorted(data.keys()):
+                    for crc in sorted(data[name]):
+                        cd = data[name][crc]
+                        if only_source is None or only_source == cd.source:
+                            writer.writerow(
+                                {
+                                    "crc": str(crc),
+                                    "name": name,
+                                    "itm": cd.itm,
+                                    "udr": cd.udr,
+                                    "nav": cd.nav,
+                                }
+                            )
+            logging.debug(f'Saved user cleaning data to "{filename}".')
+        except Exception as e:
+            logging.error(f'Error writing to "{filename}"')
+            logging.error(traceback.format_exception(e))
 
 
 class LootData:
@@ -279,15 +303,23 @@ plugins:
                     extractedYaml = LootData.PRELUDE + lme.group(1)
                     raw = yaml.load(extractedYaml, Loader=yaml.loader.BaseLoader)
                     return LootData.__from_raw(raw, source.USER)
+
+        logging.error(f'No LOOT cleaning data found in xEdit log file "{logFile}".')
         return None
 
     @staticmethod
     def load(filename: str) -> "crc_cleaning_data | None":
         if not Path(filename).is_file():
+            logging.debug(f'File "{filename}" not found.')
             return None
 
-        with open(filename, "r") as file:
-            text = file.read()
-            file.close()
-            raw = yaml.load(text, Loader=yaml.loader.BaseLoader)
-            return LootData.__from_raw(raw, source.LOOT)
+        try:
+            with open(filename, "r") as file:
+                text = file.read()
+                file.close()
+                raw = yaml.load(text, Loader=yaml.loader.BaseLoader)
+                logging.debug(f'Read LOOT master list file "{filename}".')
+                return LootData.__from_raw(raw, source.LOOT)
+        except Exception as e:
+            logging.error(f'Error reading "{filename}"')
+            logging.error(traceback.format_exception(e))

@@ -4,7 +4,7 @@
 #     https://www.nexusmods.com/fallout4/mods/85067
 #
 # This version created by GoriRed
-# Version: 1.1
+# Version: 1.2
 # License: CC-BY-NC
 # https://github.com/tkoopman/MO2-Batch-Plugin-Cleaner
 
@@ -451,9 +451,7 @@ class plugin_select_model(QAbstractTableModel):
         if index.isValid():
             p = self.__plugins[index.row()]
             if p and p["ignore"]:
-                return (
-                    Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
-                )
+                return Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable
             return (
                 Qt.ItemFlag.ItemIsEnabled
                 | Qt.ItemFlag.ItemIsUserCheckable
@@ -885,6 +883,9 @@ class PluginProgressWindow(QDialog):
             else gameInfo[self.__organizer.managedGame().gameShortName()]["xEditName"]
         )
 
+        logging.debug(f"MO2 Application to launch: {self.__xEditExecutableName}")
+        logging.debug(f"Args: {self.__xEditArgs}")
+
     def reject(self) -> None:
         if self.__stopped:
             super().reject()
@@ -1041,6 +1042,9 @@ class PluginProgressWindow(QDialog):
             )
         )
 
+        logging.debug(
+            f"Running MO2 Application: {self.__xEditExecutableName} Args: {args}"
+        )
         exe = self.__organizer.startApplication(self.__xEditExecutableName, args)
 
         if exe == mobase.INVALID_HANDLE_VALUE:
@@ -1092,7 +1096,7 @@ class CleanerPlugin(mobase.IPluginTool):
         return f"Clean all plugins with one button. Requires {gameInfo[self.__organizer.managedGame().gameShortName()]["xEditName"]}"
 
     def version(self) -> mobase.VersionInfo:
-        return mobase.VersionInfo(1, 1, 0, mobase.ReleaseType.FINAL)
+        return mobase.VersionInfo(1, 2, 0, mobase.ReleaseType.FINAL)
 
     def isActive(self) -> bool:
         return self.__organizer.pluginSetting(self.name(), "enabled")  # type: ignore
@@ -1124,7 +1128,7 @@ class CleanerPlugin(mobase.IPluginTool):
             # ),
             mobase.PluginSetting(
                 "keep_logs",
-                "0=None, 1=Unknown, 3=Manual Cleaning Required, 4=Cleaned, 5=All",
+                "xEdit log files to keep. 0=None, 1=Unknown, 3=Manual Cleaning Required, 4=Cleaned, 5=All",
                 4,
             ),
             mobase.PluginSetting(
@@ -1153,6 +1157,8 @@ class CleanerPlugin(mobase.IPluginTool):
         return QIcon()
 
     def display(self) -> None:
+        logging.debug(f"{self.name()} logging started")
+        logging.debug(f"Game: {self.__organizer.managedGame().gameShortName()}")
         plugins = Plugins.All(self.__organizer)
         dialog = PluginSelectWindow(plugins, self._parentWidget())
         if dialog.exec():
@@ -1161,3 +1167,5 @@ class CleanerPlugin(mobase.IPluginTool):
             )
             dialog.open()
             dialog.clean_all()
+
+        logging.debug(f"{self.name()} logging finished")
