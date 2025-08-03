@@ -258,15 +258,14 @@ class Plugins:
             origin = organizer.pluginList().origin(plugin_name)
             mod = organizer.modList().getMod(origin)
 
-            match origin:
-                case "data":
-                    directory = Path(
-                        organizer.managedGame().dataDirectory().absolutePath()
-                    )
-                case "overwrite":
-                    directory = Path(organizer.overwritePath())
-                case _:
-                    directory = Path(mod.absolutePath())
+            if origin == "data":
+                directory = Path(
+                    organizer.managedGame().dataDirectory().absolutePath()
+                )
+            elif origin == "overwrite":
+                directory = Path(organizer.overwritePath())
+            else:
+                directory = Path(mod.absolutePath())
             filename = directory / plugin_name
 
             crc = crc32.from_file(filename) if Path(filename).is_file() else None
@@ -378,15 +377,14 @@ class Plugins:
         if first_dynamic != -1 and priority >= first_dynamic:
             return False
 
-        match pluginType:
-            case plugin_type.PRIMARY:
-                return cleanPrimary
-            case plugin_type.DLC:
-                return cleanPrimary
-            case plugin_type.CC:
-                return cleanCC
-            case _:
-                return cleanElse
+        if pluginType == plugin_type.PRIMARY:
+            return cleanPrimary
+        elif pluginType == plugin_type.DLC:
+            return cleanPrimary
+        elif pluginType == plugin_type.CC:
+            return cleanCC
+        else:
+            return cleanElse
 
     def selected_default(self, plugin: plugin) -> bool:
         return Plugins.__selected_default(
@@ -482,17 +480,16 @@ class plugin_select_model(QAbstractTableModel):
             orientation == Qt.Orientation.Horizontal
             and role == Qt.ItemDataRole.DisplayRole
         ):
-            match section:
-                case 0:
-                    return "Plugin"
-                case 1:
-                    return None
-                case 2:
-                    return "Pri"
-                case 3:
-                    return "CRC"
-                case _:
-                    return None
+            if section == 0:
+                return "Plugin"
+            elif section == 1:
+                return None
+            elif section == 2:
+                return "Pri"
+            elif section == 3:
+                return "CRC"
+            else:
+                return None
 
     def data(
         self, index: QModelIndex, role: int = Qt.ItemDataRole.EditRole
@@ -505,79 +502,76 @@ class plugin_select_model(QAbstractTableModel):
         if not plugin:
             return None
 
-        match index.column():
-            case 0:
-                if role == Qt.ItemDataRole.CheckStateRole:
-                    return (
-                        Qt.CheckState.Checked
-                        if plugin["selected"]
-                        else Qt.CheckState.Unchecked
-                    )
+        if index.column() == 0:
+            if role == Qt.ItemDataRole.CheckStateRole:
+                return (
+                    Qt.CheckState.Checked
+                    if plugin["selected"]
+                    else Qt.CheckState.Unchecked
+                )
 
-                if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
-                    return plugin["name"]
+            if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
+                return plugin["name"]
 
-                if role == Qt.ItemDataRole.ToolTipRole:
-                    return (
-                        "Primary Plugin"
-                        if plugin["type"] == plugin_type.PRIMARY
+            if role == Qt.ItemDataRole.ToolTipRole:
+                return (
+                    "Primary Plugin"
+                    if plugin["type"] == plugin_type.PRIMARY
+                    else (
+                        "DLC Plugin"
+                        if plugin["type"] == plugin_type.DLC
                         else (
-                            "DLC Plugin"
-                            if plugin["type"] == plugin_type.DLC
-                            else (
-                                "Creation Club Plugin"
-                                if plugin["type"] == plugin_type.CC
-                                else f"Mod: {plugin["origin"]}"
-                            )
+                            "Creation Club Plugin"
+                            if plugin["type"] == plugin_type.CC
+                            else f"Mod: {plugin['origin']}"
                         )
                     )
+                )
 
-            case 1:
-                if role == Qt.ItemDataRole.DecorationRole:
-                    if plugin["ignore"]:
-                        return icons.DO_NOT_CLEAN
+        elif index.column() == 1:
+            if role == Qt.ItemDataRole.DecorationRole:
+                if plugin["ignore"]:
+                    return icons.DO_NOT_CLEAN
 
-                    match plugin["state"]:
-                        case plugin_clean_state.UNKNOWN:
-                            return icons.CLEAN_STATE_UNKNOWN
-                        case plugin_clean_state.CLEAN:
-                            return icons.CLEAN_STATE_CLEAN
-                        case plugin_clean_state.DIRTY:
-                            return icons.CLEAN_STATE_DIRTY
-                        case plugin_clean_state.REQUIRES_MANUAL:
-                            return icons.CLEAN_STATE_MANUAL
-                if role == Qt.ItemDataRole.ToolTipRole:
-                    match plugin["state"]:
-                        case plugin_clean_state.UNKNOWN:
-                            return "Unknown cleaning state"
-                        case plugin_clean_state.CLEAN:
-                            return (
-                                "Clean [No Records]"
-                                if plugin["hasNoRecords"]
-                                else (
-                                    "Clean [LOOT Masterlist]"
-                                    if plugin["cleaning_data"]
-                                    and plugin["cleaning_data"].source == source.LOOT
-                                    else "Clean [User Data]"
-                                )
-                            )
-                        case plugin_clean_state.DIRTY:
-                            return (
-                                "Dirty [LOOT Masterlist]"
-                                if plugin["cleaning_data"]
-                                and plugin["cleaning_data"].source == source.LOOT
-                                else "Dirty [User Data]"
-                            )
-                        case plugin_clean_state.REQUIRES_MANUAL:
-                            return "Plugin requires manual cleaning"
-            case 2:
-                if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
-                    return plugin["priority"]
-            case 3:
-                if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
-                    return str(plugin["crc"])
-            case _:
-                return None
+                if plugin["state"] == plugin_clean_state.UNKNOWN:
+                    return icons.CLEAN_STATE_UNKNOWN
+                elif plugin["state"] == plugin_clean_state.CLEAN:
+                    return icons.CLEAN_STATE_CLEAN
+                elif plugin["state"] == plugin_clean_state.DIRTY:
+                    return icons.CLEAN_STATE_DIRTY
+                elif plugin["state"] == plugin_clean_state.REQUIRES_MANUAL:
+                    return icons.CLEAN_STATE_MANUAL
+            if role == Qt.ItemDataRole.ToolTipRole:
+                if plugin["state"] == plugin_clean_state.UNKNOWN:
+                    return "Unknown cleaning state"
+                elif plugin["state"] == plugin_clean_state.CLEAN:
+                    return (
+                        "Clean [No Records]"
+                        if plugin["hasNoRecords"]
+                        else (
+                            "Clean [LOOT Masterlist]"
+                            if plugin["cleaning_data"]
+                            and plugin["cleaning_data"].source == source.LOOT
+                            else "Clean [User Data]"
+                        )
+                    )
+                elif plugin["state"] == plugin_clean_state.DIRTY:
+                    return (
+                        "Dirty [LOOT Masterlist]"
+                        if plugin["cleaning_data"]
+                        and plugin["cleaning_data"].source == source.LOOT
+                        else "Dirty [User Data]"
+                    )
+                elif plugin["state"] == plugin_clean_state.REQUIRES_MANUAL:
+                    return "Plugin requires manual cleaning"
+        elif index.column() == 2:
+            if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
+                return plugin["priority"]
+        elif index.column() == 3:
+            if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
+                return str(plugin["crc"])
+        else:
+            return None
 
     def setData(
         self,
@@ -778,15 +772,14 @@ class plugin_progress_model(QAbstractTableModel):
             orientation == Qt.Orientation.Horizontal
             and role == Qt.ItemDataRole.DisplayRole
         ):
-            match section:
-                case 0:
-                    return "Plugin"
-                case 1:
-                    return "Pri"
-                case 2:
-                    return "Status"
-                case _:
-                    return None
+            if section == 0:
+                return "Plugin"
+            elif section == 1:
+                return "Pri"
+            elif section == 2:
+                return "Status"
+            else:
+                return None
 
     def data(
         self, index: QModelIndex, role: int = Qt.ItemDataRole.EditRole
@@ -799,37 +792,36 @@ class plugin_progress_model(QAbstractTableModel):
         if not plugin:
             return None
 
-        match index.column():
-            case 0:
-                if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
-                    return plugin["name"]
+        if index.column() == 0:
+            if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
+                return plugin["name"]
 
-                if role == Qt.ItemDataRole.ToolTipRole:
-                    return (
-                        "Primary Plugin"
-                        if plugin["type"] == plugin_type.PRIMARY
+            if role == Qt.ItemDataRole.ToolTipRole:
+                return (
+                    "Primary Plugin"
+                    if plugin["type"] == plugin_type.PRIMARY
+                    else (
+                        "DLC Plugin"
+                        if plugin["type"] == plugin_type.DLC
                         else (
-                            "DLC Plugin"
-                            if plugin["type"] == plugin_type.DLC
-                            else (
-                                "Creation Club Plugin"
-                                if plugin["type"] == plugin_type.CC
-                                else f"Mod: {plugin["origin"]}"
-                            )
+                            "Creation Club Plugin"
+                            if plugin["type"] == plugin_type.CC
+                            else f"Mod: {plugin['origin']}"
                         )
                     )
-            case 1:
-                if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
-                    return plugin["priority"]
-            case 2:
-                if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
-                    return (
-                        str(plugin["processed"])
-                        if plugin["processed"]
-                        else "In queue..."
-                    )
-            case _:
-                return None
+                )
+        elif index.column() == 1:
+            if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
+                return plugin["priority"]
+        elif index.column() == 2:
+            if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
+                return (
+                    str(plugin["processed"])
+                    if plugin["processed"]
+                    else "In queue..."
+                )
+        else:
+            return None
 
     def update(self, plugin: plugin, processed: str | bool) -> None:
         index = self.__plugins.indexOf(plugin)
@@ -950,21 +942,21 @@ class PluginProgressWindow(QDialog):
 
             result = self.clean(plugin)
             if isinstance(result, crc_cleaning_data):
-                match len(result):
-                    case 0:
-                        logging.error(
-                            "No files detected in LOOT data from xEdit run. This should never happen."
-                        )
-                        self.reject()
-                        continue
-                    case 1:
-                        pass
-                    case _:
-                        logging.error(
-                            "Multiple different files detected in LOOT data from xEdit run. This should never happen."
-                        )
-                        self.reject()
-                        continue
+                result_length = len(result)
+                if result_length == 0:
+                    logging.error(
+                        "No files detected in LOOT data from xEdit run. This should never happen."
+                    )
+                    self.reject()
+                    continue
+                elif result_length == 1:
+                    pass
+                else:
+                    logging.error(
+                        "Multiple different files detected in LOOT data from xEdit run. This should never happen."
+                    )
+                    self.reject()
+                    continue
 
                 name = plugin["name"].casefold()
                 if name not in result:
@@ -975,6 +967,13 @@ class PluginProgressWindow(QDialog):
                     continue
 
                 updatedData = result[name]
+                if plugin["crc"] is None:
+                    logging.error(
+                        "Plugin CRC is None. This should never happen."
+                    )
+                    self.reject()
+                    continue
+                    
                 if plugin["crc"] not in updatedData:
                     logging.error(
                         "Plugin CRC not found in LOOT data from xEdit run. This should never happen."
@@ -1114,7 +1113,7 @@ class CleanerPlugin(mobase.IPluginTool):
         return "Clean Plugins"
 
     def description(self) -> str:
-        return f"Clean all plugins with one button. Requires {gameInfo[self.__organizer.managedGame().gameShortName()]["xEditName"]}"
+        return f"Clean all plugins with one button. Requires {gameInfo[self.__organizer.managedGame().gameShortName()]['xEditName']}"
 
     def version(self) -> mobase.VersionInfo:
         return mobase.VersionInfo(1, 2, 0, mobase.ReleaseType.FINAL)
