@@ -192,7 +192,7 @@ class CsvData:
             return crc_data
 
         try:
-            with open(filename, "r") as csvFile:
+            with open(filename, "r", encoding='utf-8') as csvFile:
                 reader = csv.DictReader(csvFile)
                 for line in reader:
                     name = line["name"] if "name" in line else None
@@ -219,7 +219,7 @@ class CsvData:
         only_source: source | None = source.USER,
     ) -> None:
         try:
-            with open(filename, "w", newline="") as csvFile:
+            with open(filename, "w", newline="", encoding='utf-8') as csvFile:
                 writer = csv.DictWriter(
                     csvFile, ["crc", "name", "itm", "udr", "nav"], lineterminator="\n"
                 )
@@ -291,13 +291,47 @@ plugins:
             logFile = Path(logFile)
 
         if logFile.is_file():
-            with open(logFile, "r") as file:
-                text = file.read()
-                file.close()
+            # 根据文件名确定编码方式
+            filename_lower = str(logFile).lower()
+            text = None
+            
+            # 定义要尝试的编码列表
+            if "exception" in filename_lower:
+                # SSEEditException 和 SSEEditQuickAutoCleanException 优先尝试 UTF-16 BOM 编码
+                encodings_to_try = ['utf-16', 'utf-16-le', 'utf-8', 'cp1252', 'latin1']
+            else:
+                # SSEEdit_log 优先尝试 UTF-8 编码，然后是系统默认编码
+                encodings_to_try = ['utf-8', 'cp1252', 'latin1', 'utf-16', 'utf-16-le']
+            
+            # 尝试各种编码
+            for encoding in encodings_to_try:
+                try:
+                    with open(logFile, "r", encoding=encoding) as file:
+                        text = file.read()
+                        file.close()
+                    break  # 如果成功，跳出循环
+                except UnicodeDecodeError:
+                    continue  # 如果失败，尝试下一个编码
+                except Exception as e:
+                    logging.debug(f'Error reading file with encoding {encoding}: {e}')
+                    continue
+            
+            # 如果所有编码都失败了，尝试二进制模式读取并忽略错误
+            if text is None:
+                try:
+                    with open(logFile, "rb") as file:
+                        raw_data = file.read()
+                        file.close()
+                    # 尝试用 'replace' 错误处理方式解码
+                    text = raw_data.decode('utf-8', errors='replace')
+                except Exception as e:
+                    logging.error(f'Failed to read file in any encoding: {e}')
+            
+            if text:
                 lme = re.search(
                     r"LOOT Masterlist Entries[\r\n]+((?:  .*[\r\n]+)+)",
                     text,
-                    re.RegexFlag.NOFLAG,
+                    0,
                 )
                 if lme:
                     extractedYaml = LootData.PRELUDE + lme.group(1)
@@ -314,7 +348,7 @@ plugins:
             return None
 
         try:
-            with open(filename, "r") as file:
+            with open(filename, "r", encoding='utf-8') as file:
                 text = file.read()
                 file.close()
                 raw = yaml.load(text, Loader=yaml.loader.BaseLoader)

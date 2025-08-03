@@ -605,6 +605,8 @@ class PluginSelectWindow(QDialog):
         super().__init__(parent)
         self.__main_screen = ui_main_screen.Ui_main_screen()
         self.__main_screen.setupUi(self)  # type: ignore
+        # 应用样式
+        self.setStyleSheet("QDialog {\n    background-color: #f5f5f5;\n}\nQLineEdit {\n    border: 2px solid #ddd;\n    border-radius: 5px;\n    padding: 5px;\n    background-color: white;\n    font-size: 12px;\n}\nQLineEdit:focus {\n    border: 2px solid #4CAF50;\n}\nQTableView {\n    background-color: white;\n    border: 1px solid #ddd;\n    border-radius: 5px;\n    gridline-color: #eee;\n    font-size: 12px;\n}\nQTableView::item {\n    padding: 5px;\n}\nQTableView::item:selected {\n    background-color: #e3f2fd;\n}\nQHeaderView::section {\n    background-color: #f0f0f0;\n    padding: 5px;\n    border: none;\n    border-right: 1px solid #ddd;\n    border-bottom: 1px solid #ddd;\n    font-weight: bold;\n}")
         self.__plugins = plugins
         self.__plugins_model = plugin_select_model(plugins)
         self.__proxyModel = QSortFilterProxyModel()
@@ -615,7 +617,16 @@ class PluginSelectWindow(QDialog):
         self.__previous_sort_column = 2
         self.__previous_sort_order = Qt.SortOrder.AscendingOrder
         self.__main_screen.pluginsView.sortByColumn(2, Qt.SortOrder.AscendingOrder)
-        self.__main_screen.pluginsView.resizeColumnsToContents()
+        # 设置列宽
+        self.__main_screen.pluginsView.horizontalHeader().setMinimumSectionSize(50)
+        self.__main_screen.pluginsView.horizontalHeader().setDefaultSectionSize(150)
+        self.__main_screen.pluginsView.setColumnWidth(0, 400)  # Plugin名称列
+        self.__main_screen.pluginsView.setColumnWidth(1, 40)   # 状态图标列
+        self.__main_screen.pluginsView.setColumnWidth(2, 60)   # 优先级列
+        self.__main_screen.pluginsView.setColumnWidth(3, 100)  # CRC列
+        
+        # 设置更合理的窗口大小
+        self.resize(900, 600)
         self.__main_screen.pluginsView.horizontalHeader().sortIndicatorChanged.connect(self.sort_indicator_changed)  # type: ignore
 
         self.__main_screen.pluginsView.setContextMenuPolicy(
@@ -841,11 +852,21 @@ class PluginProgressWindow(QDialog):
         self.__organizer = plugins.organizer
         self.__main_screen = ui_main_screen.Ui_main_screen()
         self.__main_screen.setupUi(self)  # type: ignore
+        # 应用样式
+        self.setStyleSheet("QDialog {\n    background-color: #f5f5f5;\n}\nQLineEdit {\n    border: 2px solid #ddd;\n    border-radius: 5px;\n    padding: 5px;\n    background-color: white;\n    font-size: 12px;\n}\nQLineEdit:focus {\n    border: 2px solid #4CAF50;\n}\nQTableView {\n    background-color: white;\n    border: 1px solid #ddd;\n    border-radius: 5px;\n    gridline-color: #eee;\n    font-size: 12px;\n}\nQTableView::item {\n    padding: 5px;\n}\nQTableView::item:selected {\n    background-color: #e3f2fd;\n}\nQHeaderView::section {\n    background-color: #f0f0f0;\n    padding: 5px;\n    border: none;\n    border-right: 1px solid #ddd;\n    border-bottom: 1px solid #ddd;\n    font-weight: bold;\n}")
         self.__plugins_model = plugin_progress_model(plugins)
         self.__proxyModel = QSortFilterProxyModel()
         self.__proxyModel.setSourceModel(self.__plugins_model)
         self.__main_screen.pluginsView.setModel(self.__proxyModel)
-        self.__main_screen.pluginsView.resizeColumnsToContents()
+        # 设置列宽
+        self.__main_screen.pluginsView.horizontalHeader().setMinimumSectionSize(50)
+        self.__main_screen.pluginsView.horizontalHeader().setDefaultSectionSize(150)
+        self.__main_screen.pluginsView.setColumnWidth(0, 500)  # Plugin名称列
+        self.__main_screen.pluginsView.setColumnWidth(1, 40)   # 状态图标列
+        self.__main_screen.pluginsView.setColumnWidth(2, 60)   # 优先级列
+        
+        # 设置更合理的窗口大小
+        self.resize(900, 600)
 
         self.__main_screen.filterEdit.setHidden(True)
         self.__main_screen.pluginsView.setSortingEnabled(False)
