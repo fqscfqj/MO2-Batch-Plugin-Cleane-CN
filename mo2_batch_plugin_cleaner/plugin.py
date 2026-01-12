@@ -219,20 +219,25 @@ class Plugins:
 
         plugin_list = organizer.pluginList()
 
-        plugins = [
-            (name, plugin_list.priority(name)) for name in plugin_list.pluginNames()
-        ]
-        plugins.sort(key=lambda x: x[1])
-        plugins = [name for name, _ in plugins]
+        # Sort plugin names by priority efficiently in a single pass
+        plugins = sorted(
+            plugin_list.pluginNames(),
+            key=lambda name: plugin_list.priority(name)
+        )
 
         plugins_data = list[plugin]()
         plugins_index = dict[str, int]()
 
-        primaryPlugins = [
+        # Use sets for O(1) lookup instead of lists
+        primaryPlugins = frozenset(
             name.casefold() for name in organizer.managedGame().primaryPlugins()
-        ]
-        DLCPlugins = [name.casefold() for name in organizer.managedGame().DLCPlugins()]
-        CCPlugins = [name.casefold() for name in organizer.managedGame().CCPlugins()]
+        )
+        DLCPlugins = frozenset(
+            name.casefold() for name in organizer.managedGame().DLCPlugins()
+        )
+        CCPlugins = frozenset(
+            name.casefold() for name in organizer.managedGame().CCPlugins()
+        )
 
         cleanPrimary = bool(organizer.pluginSetting(CleanerPlugin.NAME(), "clean_beth"))
         cleanCC = bool(organizer.pluginSetting(CleanerPlugin.NAME(), "clean_cc"))
@@ -272,41 +277,29 @@ class Plugins:
             hasNoRecords = plugin_list.hasNoRecords(plugin_name)
             cd = crc_cleaning_data.find(plugin_name, crc)
 
-            pluginType = (
-                plugin_type.CC
-                if plugin_name_cf in CCPlugins
-                else (
-                    plugin_type.DLC
-                    if plugin_name_cf in DLCPlugins
-                    else (
-                        plugin_type.PRIMARY
-                        if plugin_name_cf in primaryPlugins
-                        else plugin_type.OTHER
-                    )
-                )
-            )
+            # Determine plugin type with clear priority order
+            if plugin_name_cf in CCPlugins:
+                pluginType = plugin_type.CC
+            elif plugin_name_cf in DLCPlugins:
+                pluginType = plugin_type.DLC
+            elif plugin_name_cf in primaryPlugins:
+                pluginType = plugin_type.PRIMARY
+            else:
+                pluginType = plugin_type.OTHER
 
-            state = (
-                plugin_clean_state.CLEAN
-                if hasNoRecords
-                else (
-                    plugin_clean_state.UNKNOWN
-                    if cd is None
-                    else (
-                        plugin_clean_state.CLEAN
-                        if cd.is_clean()
-                        else (
-                            plugin_clean_state.DIRTY
-                            if cd.is_auto_cleanable()
-                            else (
-                                plugin_clean_state.REQUIRES_MANUAL
-                                if cd.requires_manual_fix()
-                                else plugin_clean_state.UNKNOWN
-                            )
-                        )
-                    )
-                )
-            )
+            # Determine clean state based on records and cleaning data
+            if hasNoRecords:
+                state = plugin_clean_state.CLEAN
+            elif cd is None:
+                state = plugin_clean_state.UNKNOWN
+            elif cd.is_clean():
+                state = plugin_clean_state.CLEAN
+            elif cd.is_auto_cleanable():
+                state = plugin_clean_state.DIRTY
+            elif cd.requires_manual_fix():
+                state = plugin_clean_state.REQUIRES_MANUAL
+            else:
+                state = plugin_clean_state.UNKNOWN
 
             if plugin_name == firstDynamic:
                 firstDynamicFound = plugin_list.priority(plugin_name)
@@ -514,56 +507,44 @@ class plugin_select_model(QAbstractTableModel):
                 return plugin["name"]
 
             if role == Qt.ItemDataRole.ToolTipRole:
-                return (
-                    "Primary Plugin"
-                    if plugin["type"] == plugin_type.PRIMARY
-                    else (
-                        "DLC Plugin"
-                        if plugin["type"] == plugin_type.DLC
-                        else (
-                            "Creation Club Plugin"
-                            if plugin["type"] == plugin_type.CC
-                            else f"Mod: {plugin['origin']}"
-                        )
-                    )
-                )
+                type_tooltips = {
+                    plugin_type.PRIMARY: "Primary Plugin",
+                    plugin_type.DLC: "DLC Plugin",
+                    plugin_type.CC: "Creation Club Plugin",
+                }
+                return type_tooltips.get(plugin["type"], f"Mod: {plugin['origin']}")
 
         elif index.column() == 1:
             if role == Qt.ItemDataRole.DecorationRole:
                 if plugin["ignore"]:
                     return icons.DO_NOT_CLEAN
+                state_icons = {
+                    plugin_clean_state.UNKNOWN: icons.CLEAN_STATE_UNKNOWN,
+                    plugin_clean_state.CLEAN: icons.CLEAN_STATE_CLEAN,
+                    plugin_clean_state.DIRTY: icons.CLEAN_STATE_DIRTY,
+                    plugin_clean_state.REQUIRES_MANUAL: icons.CLEAN_STATE_MANUAL,
+                }
+                return state_icons.get(plugin["state"])
 
-                if plugin["state"] == plugin_clean_state.UNKNOWN:
-                    return icons.CLEAN_STATE_UNKNOWN
-                elif plugin["state"] == plugin_clean_state.CLEAN:
-                    return icons.CLEAN_STATE_CLEAN
-                elif plugin["state"] == plugin_clean_state.DIRTY:
-                    return icons.CLEAN_STATE_DIRTY
-                elif plugin["state"] == plugin_clean_state.REQUIRES_MANUAL:
-                    return icons.CLEAN_STATE_MANUAL
             if role == Qt.ItemDataRole.ToolTipRole:
-                if plugin["state"] == plugin_clean_state.UNKNOWN:
+                state = plugin["state"]
+                if state == plugin_clean_state.UNKNOWN:
                     return "Unknown cleaning state"
-                elif plugin["state"] == plugin_clean_state.CLEAN:
-                    return (
-                        "Clean [No Records]"
-                        if plugin["hasNoRecords"]
-                        else (
-                            "Clean [LOOT Masterlist]"
-                            if plugin["cleaning_data"]
-                            and plugin["cleaning_data"].source == source.LOOT
-                            else "Clean [User Data]"
-                        )
-                    )
-                elif plugin["state"] == plugin_clean_state.DIRTY:
-                    return (
-                        "Dirty [LOOT Masterlist]"
-                        if plugin["cleaning_data"]
-                        and plugin["cleaning_data"].source == source.LOOT
-                        else "Dirty [User Data]"
-                    )
-                elif plugin["state"] == plugin_clean_state.REQUIRES_MANUAL:
+                elif state == plugin_clean_state.CLEAN:
+                    if plugin["hasNoRecords"]:
+                        return "Clean [No Records]"
+                    elif plugin["cleaning_data"] and plugin["cleaning_data"].source == source.LOOT:
+                        return "Clean [LOOT Masterlist]"
+                    else:
+                        return "Clean [User Data]"
+                elif state == plugin_clean_state.DIRTY:
+                    if plugin["cleaning_data"] and plugin["cleaning_data"].source == source.LOOT:
+                        return "Dirty [LOOT Masterlist]"
+                    else:
+                        return "Dirty [User Data]"
+                elif state == plugin_clean_state.REQUIRES_MANUAL:
                     return "Plugin requires manual cleaning"
+
         elif index.column() == 2:
             if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
                 return plugin["priority"]
@@ -599,29 +580,28 @@ class PluginSelectWindow(QDialog):
         super().__init__(parent)
         self.__main_screen = ui_main_screen.Ui_main_screen()
         self.__main_screen.setupUi(self)  # type: ignore
-        # 应用样式
-        self.setStyleSheet("QDialog {\n    background-color: #f5f5f5;\n}\nQLineEdit {\n    border: 2px solid #ddd;\n    border-radius: 5px;\n    padding: 5px;\n    background-color: white;\n    font-size: 12px;\n}\nQLineEdit:focus {\n    border: 2px solid #4CAF50;\n}\nQTableView {\n    background-color: white;\n    border: 1px solid #ddd;\n    border-radius: 5px;\n    gridline-color: #eee;\n    font-size: 12px;\n}\nQTableView::item {\n    padding: 5px;\n}\nQTableView::item:selected {\n    background-color: #e3f2fd;\n}\nQHeaderView::section {\n    background-color: #f0f0f0;\n    padding: 5px;\n    border: none;\n    border-right: 1px solid #ddd;\n    border-bottom: 1px solid #ddd;\n    font-weight: bold;\n}")
         self.__plugins = plugins
         self.__plugins_model = plugin_select_model(plugins)
         self.__proxyModel = QSortFilterProxyModel()
         self.__proxyModel.setSourceModel(self.__plugins_model)
         self.__proxyModel.setSortCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.__proxyModel.setFilterCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
+        self.__proxyModel.setFilterKeyColumn(0)  # Filter on plugin name column
         self.__main_screen.filterEdit.textChanged.connect(self.filter)  # type: ignore
         self.__main_screen.pluginsView.setModel(self.__proxyModel)
         self.__previous_sort_column = 2
         self.__previous_sort_order = Qt.SortOrder.AscendingOrder
         self.__main_screen.pluginsView.sortByColumn(2, Qt.SortOrder.AscendingOrder)
         # 设置列宽
-        self.__main_screen.pluginsView.horizontalHeader().setMinimumSectionSize(50)
-        self.__main_screen.pluginsView.horizontalHeader().setDefaultSectionSize(150)
+        header = self.__main_screen.pluginsView.horizontalHeader()
+        header.setMinimumSectionSize(50)
+        header.setDefaultSectionSize(150)
         self.__main_screen.pluginsView.setColumnWidth(0, 400)  # Plugin名称列
         self.__main_screen.pluginsView.setColumnWidth(1, 40)   # 状态图标列
         self.__main_screen.pluginsView.setColumnWidth(2, 60)   # 优先级列
         self.__main_screen.pluginsView.setColumnWidth(3, 100)  # CRC列
         
-        # 设置更合理的窗口大小
-        self.resize(900, 600)
-        self.__main_screen.pluginsView.horizontalHeader().sortIndicatorChanged.connect(self.sort_indicator_changed)  # type: ignore
+        header.sortIndicatorChanged.connect(self.sort_indicator_changed)  # type: ignore
 
         self.__main_screen.pluginsView.setContextMenuPolicy(
             Qt.ContextMenuPolicy.CustomContextMenu
@@ -629,11 +609,7 @@ class PluginSelectWindow(QDialog):
         self.__main_screen.pluginsView.customContextMenuRequested.connect(self.show_context_menu)  # type: ignore
 
     def filter(self):
-        filter_text = self.__main_screen.filterEdit.text()
-        if filter_text:
-            self.__proxyModel.setFilterFixedString(filter_text)
-        else:
-            self.__proxyModel.setFilterFixedString("")
+        self.__proxyModel.setFilterFixedString(self.__main_screen.filterEdit.text())
 
     def show_context_menu(self, position: QPoint):
         context_menu = QMenu(self)
@@ -797,29 +773,19 @@ class plugin_progress_model(QAbstractTableModel):
                 return plugin["name"]
 
             if role == Qt.ItemDataRole.ToolTipRole:
-                return (
-                    "Primary Plugin"
-                    if plugin["type"] == plugin_type.PRIMARY
-                    else (
-                        "DLC Plugin"
-                        if plugin["type"] == plugin_type.DLC
-                        else (
-                            "Creation Club Plugin"
-                            if plugin["type"] == plugin_type.CC
-                            else f"Mod: {plugin['origin']}"
-                        )
-                    )
-                )
+                type_tooltips = {
+                    plugin_type.PRIMARY: "Primary Plugin",
+                    plugin_type.DLC: "DLC Plugin",
+                    plugin_type.CC: "Creation Club Plugin",
+                }
+                return type_tooltips.get(plugin["type"], f"Mod: {plugin['origin']}")
+
         elif index.column() == 1:
             if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
                 return plugin["priority"]
         elif index.column() == 2:
             if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
-                return (
-                    str(plugin["processed"])
-                    if plugin["processed"]
-                    else "In queue..."
-                )
+                return str(plugin["processed"]) if plugin["processed"] else "In queue..."
         else:
             return None
 
@@ -844,21 +810,16 @@ class PluginProgressWindow(QDialog):
         self.__organizer = plugins.organizer
         self.__main_screen = ui_main_screen.Ui_main_screen()
         self.__main_screen.setupUi(self)  # type: ignore
-        # 应用样式
-        self.setStyleSheet("QDialog {\n    background-color: #f5f5f5;\n}\nQLineEdit {\n    border: 2px solid #ddd;\n    border-radius: 5px;\n    padding: 5px;\n    background-color: white;\n    font-size: 12px;\n}\nQLineEdit:focus {\n    border: 2px solid #4CAF50;\n}\nQTableView {\n    background-color: white;\n    border: 1px solid #ddd;\n    border-radius: 5px;\n    gridline-color: #eee;\n    font-size: 12px;\n}\nQTableView::item {\n    padding: 5px;\n}\nQTableView::item:selected {\n    background-color: #e3f2fd;\n}\nQHeaderView::section {\n    background-color: #f0f0f0;\n    padding: 5px;\n    border: none;\n    border-right: 1px solid #ddd;\n    border-bottom: 1px solid #ddd;\n    font-weight: bold;\n}")
         self.__plugins_model = plugin_progress_model(plugins)
         self.__proxyModel = QSortFilterProxyModel()
         self.__proxyModel.setSourceModel(self.__plugins_model)
         self.__main_screen.pluginsView.setModel(self.__proxyModel)
-        # 设置列宽
-        self.__main_screen.pluginsView.horizontalHeader().setMinimumSectionSize(50)
-        self.__main_screen.pluginsView.horizontalHeader().setDefaultSectionSize(150)
-        self.__main_screen.pluginsView.setColumnWidth(0, 500)  # Plugin名称列
-        self.__main_screen.pluginsView.setColumnWidth(1, 40)   # 状态图标列
-        self.__main_screen.pluginsView.setColumnWidth(2, 60)   # 优先级列
-        
-        # 设置更合理的窗口大小
-        self.resize(900, 600)
+        # 设置列宽 (Progress window has 3 columns: Plugin, Pri, Status)
+        header = self.__main_screen.pluginsView.horizontalHeader()
+        header.setMinimumSectionSize(50)
+        header.setDefaultSectionSize(150)
+        self.__main_screen.pluginsView.setColumnWidth(0, 400)  # Plugin名称列
+        self.__main_screen.pluginsView.setColumnWidth(1, 60)   # 优先级列
 
         self.__main_screen.filterEdit.setHidden(True)
         self.__main_screen.pluginsView.setSortingEnabled(False)

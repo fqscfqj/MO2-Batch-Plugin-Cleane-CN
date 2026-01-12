@@ -308,7 +308,6 @@ plugins:
                 try:
                     with open(logFile, "r", encoding=encoding) as file:
                         text = file.read()
-                        file.close()
                     break  # 如果成功，跳出循环
                 except UnicodeDecodeError:
                     continue  # 如果失败，尝试下一个编码
@@ -321,7 +320,6 @@ plugins:
                 try:
                     with open(logFile, "rb") as file:
                         raw_data = file.read()
-                        file.close()
                     # 尝试用 'replace' 错误处理方式解码
                     text = raw_data.decode('utf-8', errors='replace')
                 except Exception as e:
@@ -350,10 +348,9 @@ plugins:
         try:
             with open(filename, "r", encoding='utf-8') as file:
                 text = file.read()
-                file.close()
-                raw = yaml.load(text, Loader=yaml.loader.BaseLoader)
-                logging.debug(f'Read LOOT master list file "{filename}".')
-                return LootData.__from_raw(raw, source.LOOT)
+            raw = yaml.load(text, Loader=yaml.loader.BaseLoader)
+            logging.debug(f'Read LOOT master list file "{filename}".')
+            return LootData.__from_raw(raw, source.LOOT)
         except Exception as e:
             logging.error(f'Error reading "{filename}"')
             logging.error(traceback.format_exception(e))
