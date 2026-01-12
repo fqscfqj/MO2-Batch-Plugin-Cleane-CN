@@ -814,12 +814,12 @@ class PluginProgressWindow(QDialog):
         self.__proxyModel = QSortFilterProxyModel()
         self.__proxyModel.setSourceModel(self.__plugins_model)
         self.__main_screen.pluginsView.setModel(self.__proxyModel)
-        # 设置列宽 (Progress window has 3 columns: Plugin, Pri, Status)
+        # 设置列宽 (Progress window has 3 columns: Plugin, Pri, Status - Status stretches via UI config)
         header = self.__main_screen.pluginsView.horizontalHeader()
         header.setMinimumSectionSize(50)
         header.setDefaultSectionSize(150)
         self.__main_screen.pluginsView.setColumnWidth(0, 400)  # Plugin名称列
-        self.__main_screen.pluginsView.setColumnWidth(1, 60)   # 优先级列
+        self.__main_screen.pluginsView.setColumnWidth(1, 60)   # 优先级列 (Status column stretches to fill remaining space)
 
         self.__main_screen.filterEdit.setHidden(True)
         self.__main_screen.pluginsView.setSortingEnabled(False)
