@@ -589,9 +589,10 @@ class plugin_select_model(QAbstractTableModel):
             if plugin:
                 plugin["selected"] = value
 
-                self.dataChanged.emit(index, index, [role])
+                # 只触发当前单元格的更新，不影响其他单元格
+                self.dataChanged.emit(index, index, [Qt.ItemDataRole.CheckStateRole])
 
-        return False
+        return True
 
 
 class PluginSelectWindow(QDialog):
@@ -627,6 +628,9 @@ class PluginSelectWindow(QDialog):
             Qt.ContextMenuPolicy.CustomContextMenu
         )
         self.__main_screen.pluginsView.customContextMenuRequested.connect(self.show_context_menu)  # type: ignore
+        
+        # 连接选择所有红色脸按钮
+        self.__main_screen.selectDirtyButton.clicked.connect(self.select_all_dirty)  # type: ignore
 
     def filter(self):
         filter_text = self.__main_screen.filterEdit.text()
@@ -634,6 +638,18 @@ class PluginSelectWindow(QDialog):
             self.__proxyModel.setFilterFixedString(filter_text)
         else:
             self.__proxyModel.setFilterFixedString("")
+
+    def select_all_dirty(self):
+        """选择所有状态为 DIRTY (红色脸) 的插件"""
+        model = self.__plugins_model
+        for row in range(model.rowCount()):
+            index = model.index(row, 0)
+            plugin_name = model.data(index, Qt.ItemDataRole.DisplayRole)
+            if plugin_name:
+                plugin = self.__plugins[plugin_name]
+                if plugin and plugin["state"] == plugin_clean_state.DIRTY and not plugin["ignore"]:
+                    # 设置为选中状态
+                    model.setData(index, Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
 
     def show_context_menu(self, position: QPoint):
         context_menu = QMenu(self)

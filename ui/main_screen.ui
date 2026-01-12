@@ -127,6 +127,44 @@ QHeaderView::section {
       <number>10</number>
      </property>
      <item>
+      <widget class="QPushButton" name="selectDirtyButton">
+       <property name="minimumSize">
+        <size>
+         <width>150</width>
+         <height>40</height>
+        </size>
+       </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="styleSheet">
+        <string>QPushButton {
+   background-color: #FF6B6B;
+   color: white;
+   border: none;
+   border-radius: 5px;
+   padding: 5px;
+}
+QPushButton:hover {
+   background-color: #FF5252;
+}
+QPushButton:pressed {
+   background-color: #E53935;
+}</string>
+       </property>
+       <property name="text">
+        <string>选择所有红色脸</string>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
       <spacer name="horizontalSpacer">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
