@@ -79,9 +79,9 @@ class Ui_main_screen(object):
 
     def retranslateUi(self, main_screen):
         _translate = QtCore.QCoreApplication.translate
-        main_screen.setWindowTitle(_translate("main_screen", "Batch Plugin Cleaner"))
-        self.filterEdit.setPlaceholderText(_translate("main_screen", "Filter..."))
+        main_screen.setWindowTitle(_translate("main_screen", "批量插件清理器"))
+        self.filterEdit.setPlaceholderText(_translate("main_screen", "筛选..."))
         self.selectDirtyButton.setText(_translate("main_screen", "选择所有红色脸"))
-        self.okButton.setText(_translate("main_screen", "OK"))
-        self.cancelButton.setText(_translate("main_screen", "Cancel"))
+        self.okButton.setText(_translate("main_screen", "确定"))
+        self.cancelButton.setText(_translate("main_screen", "取消"))
         self.cancelButton.setShortcut(_translate("main_screen", "Esc"))

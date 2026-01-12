@@ -481,11 +481,11 @@ class plugin_select_model(QAbstractTableModel):
             and role == Qt.ItemDataRole.DisplayRole
         ):
             if section == 0:
-                return "Plugin"
+                return "插件"
             elif section == 1:
                 return None
             elif section == 2:
-                return "Pri"
+                return "优先级"
             elif section == 3:
                 return "CRC"
             else:
@@ -515,15 +515,15 @@ class plugin_select_model(QAbstractTableModel):
 
             if role == Qt.ItemDataRole.ToolTipRole:
                 return (
-                    "Primary Plugin"
+                    "主插件"
                     if plugin["type"] == plugin_type.PRIMARY
                     else (
-                        "DLC Plugin"
+                        "DLC插件"
                         if plugin["type"] == plugin_type.DLC
                         else (
-                            "Creation Club Plugin"
+                            "创作俱乐部插件"
                             if plugin["type"] == plugin_type.CC
-                            else f"Mod: {plugin['origin']}"
+                            else f"模组: {plugin['origin']}"
                         )
                     )
                 )
@@ -543,27 +543,27 @@ class plugin_select_model(QAbstractTableModel):
                     return icons.CLEAN_STATE_MANUAL
             if role == Qt.ItemDataRole.ToolTipRole:
                 if plugin["state"] == plugin_clean_state.UNKNOWN:
-                    return "Unknown cleaning state"
+                    return "未知清理状态"
                 elif plugin["state"] == plugin_clean_state.CLEAN:
                     return (
-                        "Clean [No Records]"
+                        "干净 [无记录]"
                         if plugin["hasNoRecords"]
                         else (
-                            "Clean [LOOT Masterlist]"
+                            "干净 [LOOT主列表]"
                             if plugin["cleaning_data"]
                             and plugin["cleaning_data"].source == source.LOOT
-                            else "Clean [User Data]"
+                            else "干净 [用户数据]"
                         )
                     )
                 elif plugin["state"] == plugin_clean_state.DIRTY:
                     return (
-                        "Dirty [LOOT Masterlist]"
+                        "脏 [需要清理] [LOOT主列表]"
                         if plugin["cleaning_data"]
                         and plugin["cleaning_data"].source == source.LOOT
-                        else "Dirty [User Data]"
+                        else "脏 [需要清理] [用户数据]"
                     )
                 elif plugin["state"] == plugin_clean_state.REQUIRES_MANUAL:
-                    return "Plugin requires manual cleaning"
+                    return "需要手动清理"
         elif index.column() == 2:
             if role in {Qt.ItemDataRole.DisplayRole, Qt.ItemDataRole.EditRole}:
                 return plugin["priority"]
@@ -649,7 +649,7 @@ class PluginSelectWindow(QDialog):
                 plugin = self.__plugins[plugin_name]
                 if plugin and plugin["state"] == plugin_clean_state.DIRTY and not plugin["ignore"]:
                     # 设置为选中状态
-                    model.setData(index, Qt.CheckState.Checked, Qt.ItemDataRole.CheckStateRole)
+                    model.setData(index, Qt.CheckState.Checked.value, Qt.ItemDataRole.CheckStateRole)
 
     def show_context_menu(self, position: QPoint):
         context_menu = QMenu(self)
@@ -670,13 +670,13 @@ class PluginSelectWindow(QDialog):
         if not plugin:
             return
 
-        action = QAction("Allow cleaning" if plugin["ignore"] else "Do not clean", self)
-        action.setToolTip("Will not allow cleaning of this plugin")
+        action = QAction("允许清理" if plugin["ignore"] else "不要清理", self)
+        action.setToolTip("不允许清理此插件")
         action.triggered.connect(self.context_menu_toggle_ignore)  # type: ignore
         context_menu.addAction(action)  # type: ignore
 
-        action = QAction("Set first dynamic patch", self)
-        action.setToolTip("Will never auto select this mod or any with higher priority")
+        action = QAction("设置为首个动态补丁", self)
+        action.setToolTip("永远不会自动选择此模组或任何更高优先级的模组")
         action.triggered.connect(self.context_menu_set_dynamic)  # type: ignore
         context_menu.addAction(action)  # type: ignore
 
@@ -814,15 +814,15 @@ class plugin_progress_model(QAbstractTableModel):
 
             if role == Qt.ItemDataRole.ToolTipRole:
                 return (
-                    "Primary Plugin"
+                    "主插件"
                     if plugin["type"] == plugin_type.PRIMARY
                     else (
-                        "DLC Plugin"
+                        "DLC插件"
                         if plugin["type"] == plugin_type.DLC
                         else (
-                            "Creation Club Plugin"
+                            "创作俱乐部插件"
                             if plugin["type"] == plugin_type.CC
-                            else f"Mod: {plugin['origin']}"
+                            else f"模组: {plugin['origin']}"
                         )
                     )
                 )
@@ -834,7 +834,7 @@ class plugin_progress_model(QAbstractTableModel):
                 return (
                     str(plugin["processed"])
                     if plugin["processed"]
-                    else "In queue..."
+                    else "排队中..."
                 )
         else:
             return None

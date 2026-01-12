@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Batch Plugin Cleaner</string>
+   <string>批量插件清理器</string>
   </property>
   <property name="styleSheet">
    <string>QDialog {
@@ -74,7 +74,7 @@ QHeaderView::section {
       </size>
      </property>
      <property name="placeholderText">
-      <string>Filter...</string>
+      <string>筛选...</string>
      </property>
      <property name="clearButtonEnabled">
       <bool>true</bool>
@@ -208,7 +208,7 @@ QPushButton:pressed {
 }</string>
        </property>
        <property name="text">
-        <string>OK</string>
+        <string>确定</string>
        </property>
        <property name="autoDefault">
         <bool>false</bool>
@@ -249,7 +249,7 @@ QPushButton:pressed {
 }</string>
        </property>
        <property name="text">
-        <string>Cancel</string>
+        <string>取消</string>
        </property>
        <property name="shortcut">
         <string>Esc</string>
